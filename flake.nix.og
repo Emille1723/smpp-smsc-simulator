@@ -1,0 +1,68 @@
+{
+    description = "Flake.nix to build & run some melrose instances";
+
+    inputs = {
+        nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+
+        flake-utils.url = "github:numtide/flake-utils";
+
+        devshell = {
+            url = "github:numtide/devshell";
+            inputs.nixpkgs.follows = "nixpkgs";
+        };
+    };
+
+    nixConfig = {
+        extra-substituters = [ "https://cache.nixos.org" "https://nix-community.cachix.org" ];
+        extra-trusted-public-keys = [ "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=" "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=" ];
+    };
+
+    outputs = { self, nixpkgs, ... }@inputs:
+        let
+            system = "x86_64-linux";
+            pkgs = nixpkgs.legacyPackages.${system};
+
+            commonPackages = with pkgs; [
+                # latest stable is 16.2
+                # also gcc is included by default
+                gcc16
+                just
+                podman
+                clang
+            ];
+        in
+        {
+            # package to build the project within the nix devShell
+            devShells.${system} = {
+                default = pkgs.mkShellNoCC {
+                    name = "default";
+                    packages = commonPackages ++ [
+                    ];
+                    buildInputs = [ pkgs.glibc.static ];
+                    CONTAINERS_STORAGE_CONF = pkgs.writeText "storage.conf" ''
+                        [storage]
+                        driver = "overlay"
+                    '';
+
+                    CONTAINERS_CONF = pkgs.writeText "containers.conf" ''
+                        [engine]
+                        cgroup_manager = "cgroupfs"
+                        events_logger = "file"
+                    '';
+                    hardeningDisable = ["all"];
+                    strictDeps = false;
+                    shellHook = ''
+                    '';
+                };
+                nohook = pkgs.mkShellNoCC {
+                    name = "nohook";
+                    packages = commonPackages ++ [
+                    ];
+                    hardeningDisable = ["all"];
+                    strictDeps = false;
+                    shellHook = ''
+                    '';
+                };
+            };
+        };
+}
