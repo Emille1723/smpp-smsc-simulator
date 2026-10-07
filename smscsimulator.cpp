@@ -1244,6 +1244,7 @@ Session* sessionSockMap[32000]; // array of SMPP session by socket
 
 int main(int argc, const char * argv[])
 {
+    std::setvbuf(stdout, nullptr, _IOLBF, 0);  // send each line out immediately
     printf("%s build time: %s %s\n",argv[0],__DATE__,__TIME__);
 
 
