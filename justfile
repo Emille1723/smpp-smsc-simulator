@@ -2,8 +2,7 @@ variants := "tstt digicel gtt"
 build:
     #!/usr/bin/env bash
     mkdir -pv build
-    # g++ -std=c++11 smscsimulator.cpp -o build/MLSMSCSimulator
-    g++ -std=c++11 smscsimulator.cpp -o build/app
+    g++ -std=c++11 smscsimulator.cpp -o MLSMSCSimulator
 build-alt:
     #!/usr/bin/env bash
     mkdir -pv build
