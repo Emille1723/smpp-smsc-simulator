@@ -39,7 +39,7 @@ start-bash name:
     log_file="${justfile_pwd}/logs/"${container_name_prefix}"{{name}}.log"
     # create the log file if missing
     : >> "${log_file}"
-    podman stop "${container_name_prefix}"{{name}}
+    podman stop "${container_name_prefix}"{{name}} > /dev/null 2>&1 || true
     podman rm -f "${container_name_prefix}"{{name}} >/dev/null 2>&1 || true
     podman create \
         --network=host \
@@ -49,7 +49,7 @@ start-bash name:
         localhost/empty:latest /app >/dev/null 2>&1
     podman cp build/app "${container_name_prefix}"{{name}}:/app >/dev/null 2>&1
     podman start "${container_name_prefix}"{{name}} >/dev/null 2>&1 && \
-    sleep 1 && \ # this fixes a race;  todo: investgate
+    sleep 1 && # this fixes a race;  todo: investgate
     podman logs --follow "${container_name_prefix}"{{name}} 2>&1 | tee -a "${log_file}" > /dev/null 2>&1 &
     # podman logs --follow "${container_name_prefix}"{{name}} >> "${log_file}" > /dev/null 2>&1 &
 all: build-alt empty-bash
