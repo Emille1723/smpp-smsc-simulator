@@ -34,6 +34,7 @@
             # function to setup podman within the devShell
             # nix functions are 'argument: body'
             # pass named arguments with defaults via an attribute set
+            # using cgroupfs as a fallback
             podmanEnv = { driver ? "overlay", cgroupManager ? "cgroupfs" }: {
                 CONTAINERS_STORAGE_CONF = pkgs.writeText "storage.conf" ''
                     [storage]
@@ -62,7 +63,8 @@
             pkgs.mkShellNoCC (
                 baseShell
                 # set the podman environment variables when podman is true
-                // pkgs.lib.optionalAttrs podman (podmanEnv{ })
+                # use systemd
+                // pkgs.lib.optionalAttrs podman (podmanEnv{ cgroupManager = "systemd"; })
                 // {
                     inherit name;
                     shellHook = ''
