@@ -29,6 +29,7 @@
                 just
                 podman
                 clang
+                jq
             ];
 
             # function to setup podman within the devShell
