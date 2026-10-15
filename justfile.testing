@@ -109,36 +109,48 @@ tail:
 #     (( ${#ctrs[@]} )) || { echo "No simulator containers running" >&2; exit 1; }
 #     podman logs --follow --names "${ctrs[@]}"
 logs name:
-    podman logs "${container_name_prefix}"{{name}}
+    container_name="${container_name_prefix}{{name}}"
+    podman logs "${container_name}"
+health name:
+    #!/usr/bin/env bash
+    container_name="${container_name_prefix}{{name}}"
+    podman inspect --format json "${container_name}" 2>/dev/null | jq -r '.[0].State.Health.Status'
 stop name:
-    podman kill simg-{{name}}  >/dev/null 2>&1 # kill instantly
-    podman stop "${container_name_prefix}"{{name}} >/dev/null 2>&1 # has a grace period of 10s
+    container_name="${container_name_prefix}{{name}}"
+    podman kill "${container_name}" >/dev/null 2>&1 # kill instantly
+    podman stop -t 0 "${container_name}" >/dev/null 2>&1 # has a grace period of 10s
     # podman stop -t 0 "${container_name_prefix}"{{name}} # no grace period
 stop-all:
     #!/usr/bin/env bash
     set -euo pipefail
     while IFS= read -r v; do
         v="${v//.env/}"
+        [[ -z "${v}" ]] && continue
+        container_name="${container_name_prefix}${v}"
         # ignore containers that don't exist '--ignore'
-        podman stop -t 0 --ignore ""${container_name_prefix}"${v}" >/dev/null 2>&1
+        podman stop -t 0 --ignore "${container_name}" >/dev/null 2>&1
     done <<< "${variants[@]}" || exit 1
     printf "%s\n" "All containers stopped"
 shell name:
     #!/usr/bin/env bash
     set -euo pipefail
+    container_name="${container_name_prefix}{{name}}"
     bb="$(nix build nixpkgs#pkgsStatic.busybox --no-link --print-out-paths)/bin/busybox"
-    podman cp "$bb" "${container_name_prefix}"{{name}}:/busybox
-    podman exec -it "${container_name_prefix}"{{name}} /busybox sh -c '/busybox mkdir -p /bin && /busybox --install -s /bin && exec /bin/sh'
+    podman cp "$bb" "${container_name}":/busybox
+    podman exec -it "${container_name}" /busybox sh -c '/busybox mkdir -p /bin && /busybox --install -s /bin && exec /bin/sh'
 logsf name:
     #!/usr/bin/env bash
     # follows the app's output live. Stop following with Ctrl-C; the container keeps running.
-    podman logs -f "${container_name_prefix}"{{name}}
+    container_name="${container_name_prefix}{{name}}"
+    podman logs -f "${container_name}"
 attach name:
     #!/usr/bin/env bash
     # connects to the app's own input and output.
     # --sig-proxy=false makes Ctrl-C detach you instead of killing the app.
-    podman attach --sig-proxy=false "${container_name_prefix}"{{name}}
+    container_name="${container_name_prefix}{{name}}"
+    podman attach --sig-proxy=false "${container_name}"
 top name:
     #!/usr/bin/env bash
     # podman stats "${container_name_prefix}"tstt and podman inspect sim-tstt show its
-    podman top "${container_name_prefix}"{{name}}
+    container_name="${container_name_prefix}{{name}}"
+    podman top "${container_name}"
