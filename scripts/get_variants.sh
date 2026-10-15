@@ -30,6 +30,7 @@ declare full_path_relative_to_script_parent="$(cd -- "${script_parent}" && pwd)"
 declare env_path="${full_path_relative_to_script_parent}/../env"
 cd "${env_path}" || exit 1
 declare files=(*.env)
+files=("${files[@]//base.env/}")
 printf "%s\n" "${files[@]}"
 
 # testing within the script of confirm that they do print as a single item here

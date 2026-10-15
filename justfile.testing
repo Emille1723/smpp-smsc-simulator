@@ -16,7 +16,9 @@ build:
 build-alt:
     #!/usr/bin/env bash
     mkdir -pv build
-    g++ -std=c++11 -static smscsimulator.cpp -o build/app >/dev/null 2>&1
+    # g++ -std=c++11 -static smscsimulator.cpp -o build/app >/dev/null 2>&1
+    # force the build to use the host machine's time/timezone
+    g++ -D"__DATE__=\"$(date +'%b %e %Y')\"" -D"__TIME__=\"$(date +'%T')\"" -std=c++11 -static smscsimulator.cpp -o build/app >/dev/null 2>&1
 empty:
     podman image exists empty:latest || tar -cf - --files-from /dev/null | podman import - empty:latest
 empty-bash:
@@ -37,6 +39,14 @@ start name:
 start-bash name:
     #!/usr/bin/env bash
     set -euo pipefail
+    set -a
+    base_env_file="${justfile_pwd}/env/base.env"
+    if
+        [[ -f "${base_env_file}" ]];
+    then
+        source "${base_env_file}" || printf "%s\n" "Unable to source the base env file"
+    fi
+    set +a
     container_name="${container_name_prefix}{{name}}"
     # justfile already knows to target paths relative to its position but I'm using the justfile_pwd as a safety net just incase
     log_file="${justfile_pwd}/logs/${container_name}.log"
@@ -44,10 +54,20 @@ start-bash name:
     : >> "${log_file}"
     podman stop "${container_name}" > /dev/null 2>&1 || true
     podman rm -f "${container_name}" >/dev/null 2>&1 || true
+    # the container has the wrong timezone
+    # can set it a couple of ways:
+    # 1. Let the container get the host machine's time and use it as read-only
+    # -v /etc/localtime:/etc/localtime:ro \
+    # -v /etc/timezone:/etc/timezone:ro \
+    # 2. Set the environment variable for the container
+    # --env TZ=${TIMEZONE} \
+
     podman create \
         --network=host \
         --pull=never \
         --name "${container_name}" \
+        -v /etc/localtime:/etc/localtime:ro \
+        -v /etc/timezone:/etc/timezone:ro \
         --env-file env/{{name}}.env \
         localhost/empty:latest /app >/dev/null 2>&1
     podman cp build/app "${container_name}":/app >/dev/null 2>&1
@@ -78,6 +98,7 @@ all: build-alt empty-bash
     trap 'echo; exit 0' INT
     while IFS= read -r v; do
         v="${v//.env/}"
+        [[ -z "${v}" ]] && continue
         if
             just start-bash "${v}" 2>&1;
         then
