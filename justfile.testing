@@ -92,7 +92,7 @@ start-bash name:
         printf "%s\n" "${podman_output}" >/dev/tty
         exit 1
     fi
-all: build-alt empty-bash
+all: stop-all build-alt empty-bash
     #!/usr/bin/env bash
     set -euo pipefail
     trap 'echo; exit 0' INT
